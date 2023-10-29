@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+
+[tool.flit.metadata]
+name = "mypackage"
+author = "Your Name"
+description = "A package for scraping YouTube data"
+requires-python = ">=3.6"
+
+[tool.flit.metadata.dependencies]
+requests = "^2.25"
+beautifulsoup4 = "^4.10"
+pytube = "^15.0"
+youtube-comment-downloader = "^0.1.70"
