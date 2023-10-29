@@ -1,0 +1,4 @@
+youtube-comment-downloader==0.1.70
+pytube==15.0.0
+tqdm
+requests
