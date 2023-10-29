@@ -1,9 +1,14 @@
 # yt-scraper
 Large Scale YouTube Scraper
 
+## Install
+```bash
+pip install -e git+https://github.com/someshsingh22/yt-scraper.git#egg=yt_scraper
+```
+
 ## Usage
 
-Here's how you can use the functions provided by MyPackage:
+Here's how you can use the functions provided by yt_scraper:
 
 
 ### Scraping Videos/Audios
