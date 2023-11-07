@@ -43,6 +43,7 @@ def scrape_yt_data(
             entry["status"][
                 "fetch_error"
             ] = f"Could not fetch https://www.youtube.com/watch?v={id} Failed with error {str(e)}"
+            return entry
         try:
             if not condition(yt):
                 entry["status"]["condition_error"] = "Condition not met for " + id
