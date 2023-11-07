@@ -2,32 +2,26 @@ import os
 import pickle
 import random
 import time
-import requests
 
+import requests
 from pytube import YouTube
 
 
-def download_stream(url, filepath):
-    try:
-        # Send an HTTP GET request to the stream URL
-        response = requests.get(url, stream=True)
-
-        # Check if the request was successful (status code 200)
+def download_stream(stream, root, filename, proxies=True):
+    if proxies:
+        filepath = os.path.join(root, filename)
+        response = requests.get(stream.url, stream=True)
         if response.status_code == 200:
-            # Open a local file for writing the stream
             with open(filepath, "wb") as file:
-                # Iterate through the content of the response and write it to the file
                 for chunk in response.iter_content(chunk_size=1024):
                     if chunk:
                         file.write(chunk)
-
-            return filepath  # Return the local file path if successful
+            return filepath
         else:
             print(f"Failed to download the stream. Status code: {response.status_code}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
-    return None  # Return None if the download fails
+            return None
+    else:
+        stream.download(root, filename)
 
 
 def scrape_yt_data(
@@ -36,7 +30,7 @@ def scrape_yt_data(
     CHANNEL_ROOT,
     skip=True,
     audio_only=True,
-    condition=lambda x: x.length < 1000,
+    condition=lambda x: True,
     **kwargs,
 ):
     if (id in db) and skip:
@@ -56,17 +50,8 @@ def scrape_yt_data(
                     .desc()
                     .first()
                 )
-                if "proxies" in kwargs:
-                    downloaded = download_stream(
-                        video.url, os.path.join(CHANNEL_ROOT, f"{id}.mp4")
-                    )
-                    if downloaded:
-                        entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
-                    else:
-                        return video.url
-                else:
-                    video.download()
-                    entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
+                download_stream(video, CHANNEL_ROOT, f"{id}.mp4", "proxies" in kwargs)
+                entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
         else:
             if os.path.exists(f"{CHANNEL_ROOT}/{id}.webm"):
                 entry["audio"] = f"{CHANNEL_ROOT}/{id}.webm"
@@ -74,21 +59,29 @@ def scrape_yt_data(
                 audio = (
                     yt.streams.filter(only_audio=True).order_by("abr").desc().first()
                 )
-                audio.download(
+                download_stream(
+                    audio,
                     CHANNEL_ROOT,
-                    filename=f"{id}.{audio.mime_type.split('/')[1]}",
+                    f"{id}.{audio.mime_type.split('/')[1]}",
+                    "proxies" in kwargs,
                 )
                 entry["audio"] = f"{CHANNEL_ROOT}/{id}.{audio.mime_type.split('/')[1]}"
-        entry["caption"] = yt.captions.get_by_language_code("en").xml_captions
-        if not entry["caption"]:
-            entry["auto_caption"] = yt.captions.get_by_language_code(
-                "a.en"
-            ).xml_captions
-        else:
-            entry["auto_caption"] = None
+        captions = yt.captions
+        if captions.get_by_language_code("en"):
+            entry["caption"] = {
+                "xml": captions.get_by_language_code("en").xml_captions,
+                "lang": "en",
+            }
+        elif captions.get_by_language_code("a.en"):
+            entry["caption"] = {
+                "xml": captions.get_by_language_code("a.en").xml_captions,
+                "lang": "a.en",
+            }
         pickle.dump(yt, open(f"{CHANNEL_ROOT}/{id}.pkl", "wb"))
         entry["pickle"] = f"{CHANNEL_ROOT}/{id}.pkl"
         entry["length"] = yt.length
         db[id] = entry
-        time.sleep(random.random() * 2)
+        time.sleep(random.random() / 2) if "proxies" in kwargs else time.sleep(
+            random.random() * 2
+        )
         return entry

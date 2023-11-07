@@ -1,7 +1,7 @@
 import json
+import logging
 import pickle
 import re
-import logging
 
 
 class YTMeta:
