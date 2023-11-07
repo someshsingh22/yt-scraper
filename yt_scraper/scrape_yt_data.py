@@ -2,16 +2,48 @@ import os
 import pickle
 import random
 import time
+import requests
 
 from pytube import YouTube
 
 
-def scrape_yt_data(id, db, CHANNEL_ROOT, skip=True, audio_only=True, condition=lambda x: x.length<1000):
+def download_stream(url, filepath):
+    try:
+        # Send an HTTP GET request to the stream URL
+        response = requests.get(url, stream=True)
+
+        # Check if the request was successful (status code 200)
+        if response.status_code == 200:
+            # Open a local file for writing the stream
+            with open(filepath, "wb") as file:
+                # Iterate through the content of the response and write it to the file
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        file.write(chunk)
+
+            return filepath  # Return the local file path if successful
+        else:
+            print(f"Failed to download the stream. Status code: {response.status_code}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    return None  # Return None if the download fails
+
+
+def scrape_yt_data(
+    id,
+    db,
+    CHANNEL_ROOT,
+    skip=True,
+    audio_only=True,
+    condition=lambda x: x.length < 1000,
+    **kwargs,
+):
     if (id in db) and skip:
         return db[id]
     else:
         entry = dict()
-        yt = YouTube("https://www.youtube.com/watch?v=" + id)
+        yt = YouTube("https://www.youtube.com/watch?v=" + id, **kwargs)
         if not condition(yt):
             return None
         if not audio_only:
@@ -24,11 +56,17 @@ def scrape_yt_data(id, db, CHANNEL_ROOT, skip=True, audio_only=True, condition=l
                     .desc()
                     .first()
                 )
-                video.download(
-                    CHANNEL_ROOT,
-                    filename=f"{id}.mp4",
-                )
-                entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
+                if "proxies" in kwargs:
+                    downloaded = download_stream(
+                        video.url, os.path.join(CHANNEL_ROOT, f"{id}.mp4")
+                    )
+                    if downloaded:
+                        entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
+                    else:
+                        return video.url
+                else:
+                    video.download()
+                    entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
         else:
             if os.path.exists(f"{CHANNEL_ROOT}/{id}.webm"):
                 entry["audio"] = f"{CHANNEL_ROOT}/{id}.webm"
@@ -43,7 +81,9 @@ def scrape_yt_data(id, db, CHANNEL_ROOT, skip=True, audio_only=True, condition=l
                 entry["audio"] = f"{CHANNEL_ROOT}/{id}.{audio.mime_type.split('/')[1]}"
         entry["caption"] = yt.captions.get_by_language_code("en").xml_captions
         if not entry["caption"]:
-            entry["auto_caption"] = yt.captions.get_by_language_code("a.en").xml_captions
+            entry["auto_caption"] = yt.captions.get_by_language_code(
+                "a.en"
+            ).xml_captions
         else:
             entry["auto_caption"] = None
         pickle.dump(yt, open(f"{CHANNEL_ROOT}/{id}.pkl", "wb"))
