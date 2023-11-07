@@ -6,12 +6,14 @@ import time
 from pytube import YouTube
 
 
-def scrape_yt_data(id, db, CHANNEL_ROOT, skip=True, audio_only=True):
+def scrape_yt_data(id, db, CHANNEL_ROOT, skip=True, audio_only=True, condition=lambda x: x.length<1000):
     if (id in db) and skip:
         return db[id]
     else:
         entry = dict()
         yt = YouTube("https://www.youtube.com/watch?v=" + id)
+        if not condition(yt):
+            return None
         if not audio_only:
             if os.path.exists(f"{CHANNEL_ROOT}/{id}.mp4"):
                 entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
@@ -40,6 +42,10 @@ def scrape_yt_data(id, db, CHANNEL_ROOT, skip=True, audio_only=True):
                 )
                 entry["audio"] = f"{CHANNEL_ROOT}/{id}.{audio.mime_type.split('/')[1]}"
         entry["caption"] = yt.captions.get_by_language_code("en").xml_captions
+        if not entry["caption"]:
+            entry["auto_caption"] = yt.captions.get_by_language_code("a.en").xml_captions
+        else:
+            entry["auto_caption"] = None
         pickle.dump(yt, open(f"{CHANNEL_ROOT}/{id}.pkl", "wb"))
         entry["pickle"] = f"{CHANNEL_ROOT}/{id}.pkl"
         entry["length"] = yt.length

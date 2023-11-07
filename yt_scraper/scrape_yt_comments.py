@@ -1,6 +1,5 @@
 from youtube_comment_downloader.downloader import *
 
-
 class PytubeCommentDownloader(YoutubeCommentDownloader):
     def __init__(self):
         super().__init__()
