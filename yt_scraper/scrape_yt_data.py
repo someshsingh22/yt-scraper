@@ -38,9 +38,12 @@ def scrape_yt_data(
     else:
         entry = {"id": id, "status": dict()}
         yt = YouTube("https://www.youtube.com/watch?v=" + id, **kwargs)
-        if not condition(yt):
-            entry["status"]["condition_error"] = "Condition not met"
-            return entry
+        try:
+            if not condition(yt):
+                entry["status"]["condition_error"] = "Condition not met for " + id
+                return entry
+        except:
+            entry["status"]["condition_error"] = "Condition cannot be checked for " + id
 
         try:
             if not audio_only:
@@ -79,9 +82,9 @@ def scrape_yt_data(
         except Exception as E:
             entry["status"]["media_error"] = str(E)
             if audio_only:
-                entry["status"]["media_error"] += "\nAudio Only"
+                entry["status"]["media_error"] += f"\n{id}\nAudio Only"
             else:
-                entry["status"]["media_error"] += "\nVideo Only"
+                entry["status"]["media_error"] += f"\n{id}\nVideo Only"
 
         try:
             captions = yt.captions
@@ -96,7 +99,7 @@ def scrape_yt_data(
                     "lang": "a.en",
                 }
         except Exception as E:
-            entry["status"]["caption_error"] = str(E)
+            entry["status"]["caption_error"] = str(E) + "\n" + id
 
         pickle.dump(yt, open(f"{CHANNEL_ROOT}/{id}.pkl", "wb"))
         entry["pickle"] = f"{CHANNEL_ROOT}/{id}.pkl"
