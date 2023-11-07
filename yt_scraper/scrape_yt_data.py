@@ -103,7 +103,11 @@ def scrape_yt_data(
 
         pickle.dump(yt, open(f"{CHANNEL_ROOT}/{id}.pkl", "wb"))
         entry["pickle"] = f"{CHANNEL_ROOT}/{id}.pkl"
-        entry["length"] = yt.length
+        try:
+            entry["length"] = yt.length
+        except:
+            entry["length"] = None
+            entry["status"]["length_error"] = "Could not extract length"
         db[id] = entry
         time.sleep(random.random() / 2) if "proxies" in kwargs else time.sleep(
             random.random() * 2
