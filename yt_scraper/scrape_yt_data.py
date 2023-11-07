@@ -39,7 +39,8 @@ def scrape_yt_data(
         entry = {"id": id, "status": dict()}
         yt = YouTube("https://www.youtube.com/watch?v=" + id, **kwargs)
         if not condition(yt):
-            return {"status": "Condition not met"}
+            entry["status"]["condition_error"] = "Condition not met"
+            return entry
 
         try:
             if not audio_only:
