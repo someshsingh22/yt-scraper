@@ -88,14 +88,14 @@ def scrape_yt_data(
 
         try:
             captions = yt.captions
-            if captions.get_by_language_code("en"):
+            if captions.get("en"):
                 entry["caption"] = {
-                    "xml": captions.get_by_language_code("en").xml_captions,
+                    "xml": captions.get("en").xml_captions,
                     "lang": "en",
                 }
-            elif captions.get_by_language_code("a.en"):
+            elif captions.get("a.en"):
                 entry["caption"] = {
-                    "xml": captions.get_by_language_code("a.en").xml_captions,
+                    "xml": captions.get("a.en").xml_captions,
                     "lang": "a.en",
                 }
         except Exception as E:
