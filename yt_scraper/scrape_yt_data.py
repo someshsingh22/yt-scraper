@@ -36,47 +36,67 @@ def scrape_yt_data(
     if (id in db) and skip:
         return db[id]
     else:
-        entry = dict()
+        entry = {"id": id, "status": dict()}
         yt = YouTube("https://www.youtube.com/watch?v=" + id, **kwargs)
         if not condition(yt):
-            return None
-        if not audio_only:
-            if os.path.exists(f"{CHANNEL_ROOT}/{id}.mp4"):
-                entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
+            return {"status": "Condition not met"}
+
+        try:
+            if not audio_only:
+                if os.path.exists(f"{CHANNEL_ROOT}/{id}.mp4"):
+                    entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
+                else:
+                    video = (
+                        yt.streams.filter(progressive=True, file_extension="mp4")
+                        .order_by("resolution")
+                        .desc()
+                        .first()
+                    )
+                    download_stream(
+                        video, CHANNEL_ROOT, f"{id}.mp4", "proxies" in kwargs
+                    )
+                    entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
             else:
-                video = (
-                    yt.streams.filter(progressive=True, file_extension="mp4")
-                    .order_by("resolution")
-                    .desc()
-                    .first()
-                )
-                download_stream(video, CHANNEL_ROOT, f"{id}.mp4", "proxies" in kwargs)
-                entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
-        else:
-            if os.path.exists(f"{CHANNEL_ROOT}/{id}.webm"):
-                entry["audio"] = f"{CHANNEL_ROOT}/{id}.webm"
+                if os.path.exists(f"{CHANNEL_ROOT}/{id}.webm"):
+                    entry["audio"] = f"{CHANNEL_ROOT}/{id}.webm"
+                else:
+                    audio = (
+                        yt.streams.filter(only_audio=True)
+                        .order_by("abr")
+                        .desc()
+                        .first()
+                    )
+                    download_stream(
+                        audio,
+                        CHANNEL_ROOT,
+                        f"{id}.{audio.mime_type.split('/')[1]}",
+                        "proxies" in kwargs,
+                    )
+                    entry[
+                        "audio"
+                    ] = f"{CHANNEL_ROOT}/{id}.{audio.mime_type.split('/')[1]}"
+        except Exception as E:
+            entry["status"]["media_error"] = str(E)
+            if audio_only:
+                entry["status"]["media_error"] += "\nAudio Only"
             else:
-                audio = (
-                    yt.streams.filter(only_audio=True).order_by("abr").desc().first()
-                )
-                download_stream(
-                    audio,
-                    CHANNEL_ROOT,
-                    f"{id}.{audio.mime_type.split('/')[1]}",
-                    "proxies" in kwargs,
-                )
-                entry["audio"] = f"{CHANNEL_ROOT}/{id}.{audio.mime_type.split('/')[1]}"
-        captions = yt.captions
-        if captions.get_by_language_code("en"):
-            entry["caption"] = {
-                "xml": captions.get_by_language_code("en").xml_captions,
-                "lang": "en",
-            }
-        elif captions.get_by_language_code("a.en"):
-            entry["caption"] = {
-                "xml": captions.get_by_language_code("a.en").xml_captions,
-                "lang": "a.en",
-            }
+                entry["status"]["media_error"] += "\nVideo Only"
+
+        try:
+            captions = yt.captions
+            if captions.get_by_language_code("en"):
+                entry["caption"] = {
+                    "xml": captions.get_by_language_code("en").xml_captions,
+                    "lang": "en",
+                }
+            elif captions.get_by_language_code("a.en"):
+                entry["caption"] = {
+                    "xml": captions.get_by_language_code("a.en").xml_captions,
+                    "lang": "a.en",
+                }
+        except Exception as E:
+            entry["status"]["caption_error"] = str(E)
+
         pickle.dump(yt, open(f"{CHANNEL_ROOT}/{id}.pkl", "wb"))
         entry["pickle"] = f"{CHANNEL_ROOT}/{id}.pkl"
         entry["length"] = yt.length
