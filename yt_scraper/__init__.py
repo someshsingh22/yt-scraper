@@ -1,3 +1,4 @@
 from yt_scraper.scrape_yt_comments import PytubeCommentDownloader
 from yt_scraper.scrape_yt_data import scrape_yt_data
 from yt_scraper.scrape_yt_metadata import YTMeta
+from yt_scraper.minitube import MiniTube

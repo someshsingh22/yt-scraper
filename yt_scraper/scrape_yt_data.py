@@ -4,8 +4,7 @@ import random
 import time
 
 import requests
-from pytube import YouTube
-
+from .minitube import MiniTube
 
 def download_stream(stream, root, filename, proxies=True):
     if proxies:
@@ -38,7 +37,7 @@ def scrape_yt_data(
     else:
         entry = {"id": id, "status": dict()}
         try:
-            yt = YouTube("https://www.youtube.com/watch?v=" + id, **kwargs)
+            yt = MiniTube("https://www.youtube.com/watch?v=" + id, **kwargs)
         except Exception as e:
             entry["status"][
                 "fetch_error"
