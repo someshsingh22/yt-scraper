@@ -39,10 +39,14 @@ def scrape_yt_data(
     skip=True,
     audio_only=True,
     condition=lambda x: True,
+    return_yt: bool = True,
     **kwargs,
 ):
     if (id in db) and skip:
-        return db[id]
+        if return_yt:
+            return db[id], pickle.load(open(db[id]["pickle"], "rb"))
+        else:
+            return db[id]
     else:
         entry = {"id": id, "status": dict()}
         try:
@@ -51,11 +55,17 @@ def scrape_yt_data(
             entry["status"][
                 "fetch_error"
             ] = f"Could not fetch https://www.youtube.com/watch?v={id} Failed with error {str(e)}"
-            return entry
+            if return_yt:
+                return entry, None
+            else:
+                return entry
         try:
             if not condition(yt):
                 entry["status"]["condition_error"] = "Condition not met for " + id
-                return entry
+                if return_yt:
+                    return entry, yt
+                else:
+                    return entry
         except:
             entry["status"]["condition_error"] = "Condition cannot be checked for " + id
 
@@ -106,4 +116,7 @@ def scrape_yt_data(
             entry["length"] = None
             entry["status"]["length_error"] = "Could not extract length"
         db[id] = entry
-        return entry
+        if return_yt:
+            return entry, yt
+        else:
+            return entry
