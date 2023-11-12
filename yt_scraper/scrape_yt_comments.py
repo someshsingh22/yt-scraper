@@ -13,7 +13,7 @@ SORT_BY_RECENT = 0
 class PytubeCommentDownloader(YoutubeCommentDownloader):
     def __init__(self, proxies: Dict[str, str]):
         super().__init__()
-        self.session.update(proxies)
+        self.session.proxies.update(proxies)
 
     def get_comments_from_pytube(
         self,
