@@ -1,4 +1,13 @@
+import json
+import time
+from typing import Dict, List, Union
+
 from youtube_comment_downloader.downloader import *
+
+from yt_scraper.minitube import MiniTube
+
+SORT_BY_POPULAR = 1
+SORT_BY_RECENT = 0
 
 
 class PytubeCommentDownloader(YoutubeCommentDownloader):
@@ -6,8 +15,43 @@ class PytubeCommentDownloader(YoutubeCommentDownloader):
         super().__init__()
 
     def get_comments_from_pytube(
-        self, pytube_obj, sort_by=SORT_BY_POPULAR, language="en", sleep=0.1
-    ):
+        self,
+        pytube_obj: MiniTube,
+        sort_by: int = SORT_BY_POPULAR,
+        language: str = "en",
+        sleep: float = 0.1,
+    ) -> List[Dict[str, Union[str, int, float, bool, None]]]:
+        """
+        Get comments from a YouTube video using a pytube YouTube object.
+
+        Parameters:
+        - pytube_obj (YouTube): A pytube YouTube object representing the video.
+        - sort_by (int): Sort order for comments. Use SORT_BY_POPULAR (0) for popular, SORT_BY_RECENT (1) for recent.
+          Default is SORT_BY_POPULAR.
+        - language (str): Language code for comments. Default is "en" (English).
+        - sleep (float): Time to sleep between requests to avoid rate limiting. Default is 0.1 seconds.
+
+        Returns:
+        - List[Dict[str, Union[str, int, float, bool, None]]]: List of dictionaries containing comment information.
+
+        Example:
+        ```python
+        from yt_scraper import MiniTube
+
+        # Instantiate YourClassName
+
+        downloader = PytubeCommentDownloader()
+        # Get a MiniTube video object using pytube
+        yt_video = YouTube("https://www.youtube.com/watch?v=your_video_id")
+
+        # Get comments sorted by popular
+        comments = obj.get_comments_from_pytube(yt_video, sort_by=SORT_BY_POPULAR)
+        for comment in comments:
+            print(comment)
+        ```
+
+        Note: Replace "your_video_id" in the YouTube URL with the actual video ID.
+        """
         html = pytube_obj.watch_html
         ytcfg = json.loads(self.regex_search(html, YT_CFG_RE, default=""))
         if not ytcfg:

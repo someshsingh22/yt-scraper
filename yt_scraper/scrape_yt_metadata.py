@@ -1,20 +1,29 @@
 import json
 import logging
-import pickle
 import re
+
+from yt_scraper.minitube import MiniTube
 
 
 class YTMeta:
-    def __init__(self, pkl):
-        self.pkl = pkl
-        self.yt = pickle.load(open(pkl, "rb"))
+    def __init__(self, yt_obj: MiniTube):
+        """
+        Initialize YTMeta object.
+
+        Parameters:
+        - yt_obj (MiniTube): A MiniTube YouTube object representing the video.
+        """
+        self.yt = yt_obj
         self.set_chapters()
         self.set_likes()
         self.views = self.yt.views
         self.length = self.yt.length
         self.set_replays()
 
-    def set_likes(self):
+    def set_likes(self) -> None:
+        """
+        Set the number of likes for the video.
+        """
         try:
             like_template = r"[0-9]{1,3},?[0-9]{0,3},?[0-9]{0,3} like"
             str_likes = re.search(like_template, str(self.yt.initial_data)).group(0)
@@ -23,7 +32,10 @@ class YTMeta:
             logging.error("Cannot Retrieve Likes for " + self.pkl)
             self.likes = None
 
-    def set_replays(self):
+    def set_replays(self) -> None:
+        """
+        Set the replay information for the video.
+        """
         html = self.yt.watch_html
         start = html.find('"markers":[{')
         if start == -1:
@@ -36,7 +48,10 @@ class YTMeta:
             return None
         self.replays = [f["intensityScoreNormalized"] for f in hmap["markers"]]
 
-    def set_chapters(self):
+    def set_chapters(self) -> None:
+        """
+        Set the chapter information for the video.
+        """
         html = self.yt.watch_html
         start = html.find('"chapters":[')
         if start == -1:
@@ -56,7 +71,13 @@ class YTMeta:
             for ch in stamps["chapters"]
         ]
 
-    def export(self):
+    def export(self) -> dict:
+        """
+        Export the YTMeta object as a dictionary, excluding the 'yt' attribute.
+
+        Returns:
+        - dict: Dictionary containing YTMeta attributes.
+        """
         export = self.__dict__
         export.pop("yt")
         return export

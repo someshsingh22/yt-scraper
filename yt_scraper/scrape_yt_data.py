@@ -1,14 +1,25 @@
 import os
 import pickle
-import random
-import time
 
 import requests
-from .minitube import MiniTube
+from pytube.streams import Stream
 
-def download_stream(stream, root, filename, proxies=True):
-    if proxies:
-        filepath = os.path.join(root, filename)
+from yt_scraper.minitube import MiniTube
+
+
+def download_stream(stream: Stream, root: str, filename: str, proxies: bool = True):
+    """
+    Download a stream from a minitube stream object.
+    Returns the filepath of the downloaded stream.
+    Skip if the file already exists.
+    """
+    assert (
+        proxies
+    ), "Proxies must be set to True to download streams. Otherwise, use pytube directly. Or revert to 0.1"
+    filepath = os.path.join(root, filename)
+    if os.path.exists(filepath):
+        return filepath
+    else:
         response = requests.get(stream.url, stream=True)
         if response.status_code == 200:
             with open(filepath, "wb") as file:
@@ -19,8 +30,6 @@ def download_stream(stream, root, filename, proxies=True):
         else:
             print(f"Failed to download the stream. Status code: {response.status_code}")
             return None
-    else:
-        stream.download(root, filename)
 
 
 def scrape_yt_data(
@@ -50,46 +59,29 @@ def scrape_yt_data(
         except:
             entry["status"]["condition_error"] = "Condition cannot be checked for " + id
 
+        mode = "Audio" if audio_only else "Video"
+
         try:
-            if not audio_only:
-                if os.path.exists(f"{CHANNEL_ROOT}/{id}.mp4"):
-                    entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
-                else:
-                    video = (
-                        yt.streams.filter(progressive=True, file_extension="mp4")
-                        .order_by("resolution")
-                        .desc()
-                        .first()
-                    )
-                    download_stream(
-                        video, CHANNEL_ROOT, f"{id}.mp4", "proxies" in kwargs
-                    )
-                    entry["video"] = f"{CHANNEL_ROOT}/{id}.mp4"
+            if mode == "Video":
+                media = (
+                    yt.streams.filter(progressive=True, file_extension="mp4")
+                    .order_by("resolution")
+                    .desc()
+                    .first()
+                )
+                filename = f"{id}.mp4"
+
             else:
-                if os.path.exists(f"{CHANNEL_ROOT}/{id}.webm"):
-                    entry["audio"] = f"{CHANNEL_ROOT}/{id}.webm"
-                else:
-                    audio = (
-                        yt.streams.filter(only_audio=True)
-                        .order_by("abr")
-                        .desc()
-                        .first()
-                    )
-                    download_stream(
-                        audio,
-                        CHANNEL_ROOT,
-                        f"{id}.{audio.mime_type.split('/')[1]}",
-                        "proxies" in kwargs,
-                    )
-                    entry[
-                        "audio"
-                    ] = f"{CHANNEL_ROOT}/{id}.{audio.mime_type.split('/')[1]}"
+                media = (
+                    yt.streams.filter(only_audio=True).order_by("abr").desc().first()
+                )
+                filename = f"{id}.{media.mime_type.split('/')[1]}"
+
+            download_stream(media, CHANNEL_ROOT, filename, "proxies" in kwargs)
+            entry[mode] = out_path = os.path.join(CHANNEL_ROOT, filename)
+
         except Exception as E:
-            entry["status"]["media_error"] = str(E)
-            if audio_only:
-                entry["status"]["media_error"] += f"\n{id}\nAudio Only"
-            else:
-                entry["status"]["media_error"] += f"\n{id}\nVideo Only"
+            entry["status"]["media_error"] = f"{str(E)}\n{id}\n{mode} Only"
 
         try:
             captions = yt.captions
@@ -114,7 +106,4 @@ def scrape_yt_data(
             entry["length"] = None
             entry["status"]["length_error"] = "Could not extract length"
         db[id] = entry
-        time.sleep(random.random() / 2) if "proxies" in kwargs else time.sleep(
-            random.random() * 2
-        )
         return entry

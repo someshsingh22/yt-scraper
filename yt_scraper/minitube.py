@@ -1,6 +1,4 @@
-from pytube import YouTube
-from pytube import extract
-from pytube import Stream, StreamQuery
+from pytube import Stream, StreamQuery, YouTube, extract
 
 
 class MiniTube(YouTube):
