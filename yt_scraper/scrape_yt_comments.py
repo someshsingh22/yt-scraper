@@ -6,8 +6,8 @@ from youtube_comment_downloader.downloader import *
 
 from yt_scraper.minitube import MiniTube
 
-SORT_BY_POPULAR = 1
-SORT_BY_RECENT = 0
+SORT_BY_POPULAR = 0
+SORT_BY_RECENT = 1
 
 
 class PytubeCommentDownloader(YoutubeCommentDownloader):
