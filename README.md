@@ -7,9 +7,6 @@
 1. [Introduction](#introduction)
 2. [Installation](#installation)
 3. [Usage](#usage)
-4. [Examples](#examples)
-5. [Contributing](#contributing)
-6. [License](#license)
 
 ## Introduction
 
